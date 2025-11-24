@@ -1,0 +1,824 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sensei MVP API",
+    "description": "API for the Sensei Product Sense Practice Game - help users practice structured product thinking with AI-powered feedback",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Sensei Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Magic link authentication endpoints"
+    },
+    {
+      "name": "Sessions",
+      "description": "Practice session management"
+    },
+    {
+      "name": "Progress",
+      "description": "User progress and statistics"
+    },
+    {
+      "name": "Account",
+      "description": "Account management"
+    }
+  ],
+  "paths": {
+    "/auth/send-link": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Send magic link to user email",
+        "description": "Generates a magic link token and sends it to the user's email (or logs to console in dev mode)",
+        "operationId": "sendMagicLink",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Magic link sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "message": "Magic link sent to user@example.com",
+                    "expiresIn": "15m"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Verify magic link token",
+        "description": "Validates the magic link token and issues a long-lived JWT session token",
+        "operationId": "verifyToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "user": {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "email": "user@example.com",
+                      "displayName": null,
+                      "level": 1,
+                      "totalXp": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout user",
+        "description": "Invalidates the current session token",
+        "operationId": "logout",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "message": "Logged out successfully"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/sessions/start": {
+      "post": {
+        "tags": ["Sessions"],
+        "summary": "Start a new practice session",
+        "description": "Creates a new session and selects an appropriate prompt based on user level",
+        "operationId": "startSession",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "sessionId": "123e4567-e89b-12d3-a456-426614174001",
+                    "prompt": {
+                      "promptId": "123e4567-e89b-12d3-a456-426614174002",
+                      "company": "TikTok",
+                      "mission": "Inspire creativity and bring joy",
+                      "surface": "Creator Tools",
+                      "objective": "Retention",
+                      "constraint": ["Data retention: 30 days", "International launch required"],
+                      "difficulty": 2,
+                      "promptText": "Design a creator onboarding improvement to increase 30-day retention..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "409": {
+            "description": "User already has an in-progress session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONFLICT",
+                    "message": "You already have an in-progress session. Please complete or abandon it first.",
+                    "details": {
+                      "sessionId": "123e4567-e89b-12d3-a456-426614174001"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/complete": {
+      "post": {
+        "tags": ["Sessions"],
+        "summary": "Complete and score a session",
+        "description": "Submits all step inputs, calls Claude API for scoring, and updates XP/streaks",
+        "operationId": "completeSession",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session scored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "overallScore": 78,
+                    "scores": {
+                      "goal": 4,
+                      "mission": 4,
+                      "segments": 3,
+                      "problems": 4,
+                      "solutions": 3,
+                      "metrics": 4,
+                      "tradeoffs": 3,
+                      "summary": 4
+                    },
+                    "feedback": {
+                      "goal": "Strong alignment with retention objective. Consider adding a specific metric target.",
+                      "mission": "Good connection to company mission. Well articulated.",
+                      "segments": "Segments identified but could be more specific about user behaviors."
+                    },
+                    "strengths": [
+                      "Clear problem identification",
+                      "Thoughtful V0-V2 progression",
+                      "Good metric selection"
+                    ],
+                    "improvements": [
+                      "Add more user research insights",
+                      "Consider edge cases in tradeoffs"
+                    ],
+                    "finalSummary": "Solid product thinking with room to deepen user empathy.",
+                    "xpAwarded": 156,
+                    "newTotalXp": 1456,
+                    "currentLevel": 3,
+                    "streak": 5
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "409": {
+            "description": "Session already completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONFLICT",
+                    "message": "This session has already been completed"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "get": {
+        "tags": ["Sessions"],
+        "summary": "List user's sessions",
+        "description": "Returns paginated list of user's practice sessions",
+        "operationId": "listSessions",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["in_progress", "completed", "abandoned"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sessions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "sessions": [
+                      {
+                        "sessionId": "123e4567-e89b-12d3-a456-426614174001",
+                        "company": "TikTok",
+                        "objective": "Retention",
+                        "status": "completed",
+                        "overallScore": 78,
+                        "startedAt": "2024-11-12T10:00:00Z",
+                        "completedAt": "2024-11-12T10:15:00Z"
+                      }
+                    ],
+                    "pagination": {
+                      "page": 1,
+                      "pageSize": 20,
+                      "total": 34,
+                      "totalPages": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/sessions/{id}": {
+      "get": {
+        "tags": ["Sessions"],
+        "summary": "Get session detail",
+        "description": "Returns full details of a specific session including all steps and scoring",
+        "operationId": "getSession",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session details retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/progress": {
+      "get": {
+        "tags": ["Progress"],
+        "summary": "Get user progress",
+        "description": "Returns user's XP, level, streak, and performance statistics",
+        "operationId": "getProgress",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Progress data retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                },
+                "example": {
+                  "data": {
+                    "levels": {
+                      "currentLevel": 3,
+                      "totalXp": 1340,
+                      "xpToNextLevel": 160,
+                      "xpForNextLevel": 1500
+                    },
+                    "streak": {
+                      "currentStreak": 5,
+                      "bestStreak": 12,
+                      "lastActivityDate": "2024-11-12"
+                    },
+                    "averageScoresByStep": {
+                      "goal": 3.7,
+                      "mission": 3.5,
+                      "segments": 3.2,
+                      "problems": 3.8,
+                      "solutions": 3.1,
+                      "metrics": 3.6,
+                      "tradeoffs": 3.0,
+                      "summary": 3.9
+                    },
+                    "recentSessions": [
+                      {
+                        "sessionId": "123e4567-e89b-12d3-a456-426614174001",
+                        "company": "TikTok",
+                        "overallScore": 80,
+                        "completedAt": "2024-11-12T10:15:00Z"
+                      }
+                    ],
+                    "stats": {
+                      "totalSessions": 34,
+                      "completedSessions": 30,
+                      "averageScore": 72,
+                      "averageDuration": "12m"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/account": {
+      "delete": {
+        "tags": ["Account"],
+        "summary": "Delete user account",
+        "description": "Permanently deletes user account and all associated data (sessions, XP, etc.)",
+        "operationId": "deleteAccount",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["confirmation"],
+                "properties": {
+                  "confirmation": {
+                    "type": "string",
+                    "enum": ["DELETE"],
+                    "description": "Must type 'DELETE' to confirm"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Account deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from /auth/verify endpoint"
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "VALIDATION_ERROR"
+              },
+              "message": {
+                "type": "string",
+                "example": "Invalid input provided"
+              },
+              "details": {
+                "type": "object"
+              }
+            },
+            "required": ["code", "message"]
+          }
+        }
+      },
+      "SessionCompletionRequest": {
+        "type": "object",
+        "required": ["sessionId", "userInputs"],
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userInputs": {
+            "type": "object",
+            "required": [
+              "goal",
+              "missionAlignment",
+              "segments",
+              "problems",
+              "solutions",
+              "metrics",
+              "tradeoffs",
+              "summary"
+            ],
+            "properties": {
+              "goal": {
+                "type": "object",
+                "properties": {
+                  "objectiveCategory": {
+                    "type": "string",
+                    "enum": ["Growth", "Engagement", "Retention", "Monetization", "Cost", "Quality / Trust"]
+                  },
+                  "goalSentence": {
+                    "type": "string"
+                  }
+                }
+              },
+              "missionAlignment": {
+                "type": "string"
+              },
+              "segments": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 3
+              },
+              "problems": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 3
+              },
+              "solutions": {
+                "type": "object",
+                "properties": {
+                  "v0": {
+                    "type": "string"
+                  },
+                  "v1": {
+                    "type": "string"
+                  },
+                  "v2": {
+                    "type": "string"
+                  }
+                }
+              },
+              "metrics": {
+                "type": "object",
+                "properties": {
+                  "primary": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "guardrails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "tradeoffs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "card": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "type": "string"
+                    },
+                    "mitigation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "summary": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "SessionDetail": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "sessionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["in_progress", "completed", "abandoned"]
+              },
+              "prompt": {
+                "type": "object"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "overallScore": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "scores": {
+                "type": "object"
+              },
+              "feedback": {
+                "type": "object"
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Invalid input provided",
+                "details": {
+                  "fields": {
+                    "email": "Invalid email format"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "UnauthorizedError": {
+        "description": "Unauthorized - invalid or missing token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "UNAUTHORIZED",
+                "message": "Invalid or expired token"
+              }
+            }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Forbidden - valid token but not allowed to access resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "FORBIDDEN",
+                "message": "You don't have permission to access this session"
+              }
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "NOT_FOUND",
+                "message": "Session not found"
+              }
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "An unexpected error occurred"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

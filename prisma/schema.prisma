@@ -1,0 +1,235 @@
+// Sensei MVP - Prisma Schema
+// Database: SQLite (local dev), upgradeable to PostgreSQL
+// Based on PRD Section 6: Data Model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MANAGEMENT
+// ============================================================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  displayName  String?  @map("display_name")
+
+  // Gamification
+  level        Int      @default(1)
+  totalXp      Int      @default(0) @map("total_xp")
+  bestStreak   Int      @default(0) @map("best_streak")
+
+  // Settings (stored as JSON for flexibility)
+  settings     String?  @default("{}") // JSON string
+
+  // Timestamps
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sessions     Session[]
+  xpEvents     XpEvent[]
+  streak       Streak?
+  authTokens   AuthToken[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
+
+model AuthToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("auth_tokens")
+}
+
+// ============================================================================
+// PROMPTS & MISSIONS
+// ============================================================================
+
+model Mission {
+  id          String   @id @default(uuid())
+  company     String   @unique
+  missionText String   @map("mission_text")
+  version     Int      @default(1)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  prompts     Prompt[]
+
+  @@map("missions")
+}
+
+model Prompt {
+  id         String   @id @default(uuid())
+  name       String   // Internal title
+  company    String
+  surface    String   // Product surface area
+  objective  String   // Growth, Engagement, etc.
+  difficulty Int      @default(1) // 1, 2, or 3
+
+  // Constraint stored as JSON array
+  constraint String   @default("[]") // JSON array of strings
+
+  // Full prompt text
+  promptText String   @map("prompt_text")
+
+  // Timestamps
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  mission    Mission  @relation(fields: [company], references: [company])
+  sessions   Session[]
+
+  @@index([company])
+  @@index([difficulty])
+  @@map("prompts")
+}
+
+// ============================================================================
+// SESSIONS & STEPS
+// ============================================================================
+
+model Session {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  promptId      String    @map("prompt_id")
+
+  // Status: "in_progress" | "completed" | "abandoned"
+  status        String    @default("in_progress")
+
+  // Scoring (populated after completion)
+  overallScore  Int?      @map("overall_score") // 0-100
+  scoringJson   String?   @map("scoring_json") // JSON string with detailed scores
+  scoringStatus String?   @map("scoring_status") // "success" | "fallback"
+
+  // Company skin (denormalized for display)
+  companySkin   String?   @map("company_skin")
+
+  // Metadata
+  clientMetadata String?  @map("client_metadata") // JSON string
+
+  // Timestamps
+  startedAt     DateTime  @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt        Prompt    @relation(fields: [promptId], references: [id])
+  steps         Step[]
+  xpEvents      XpEvent[]
+
+  @@index([userId, startedAt(sort: Desc)])
+  @@index([status])
+  @@map("sessions")
+}
+
+model Step {
+  id         String   @id @default(uuid())
+  sessionId  String   @map("session_id")
+
+  // Step name: "goal" | "mission" | "segments" | "problems" | "solutions" | "metrics" | "tradeoffs" | "summary"
+  stepName   String   @map("step_name")
+
+  // User input (stored as JSON)
+  userInput  String   @map("user_input") // JSON string
+
+  // Scoring (populated after session completion)
+  score      Int?     // 0-5
+  feedback   String?  // JSON string with feedback details
+
+  // Performance tracking
+  durationMs Int?     @map("duration_ms")
+
+  // Timestamps
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, stepName])
+  @@index([sessionId])
+  @@map("steps")
+}
+
+// ============================================================================
+// GAMIFICATION
+// ============================================================================
+
+model XpEvent {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  sessionId String?  @map("session_id")
+
+  amount    Int
+  reason    String   // "session_completed", "bonus", etc.
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("xp_events")
+}
+
+model Streak {
+  userId           String   @id @map("user_id")
+  currentStreak    Int      @default(0) @map("current_streak")
+  bestStreak       Int      @default(0) @map("best_streak")
+  lastActivityDate String   @map("last_activity_date") // Stored as ISO date string (YYYY-MM-DD)
+
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("streaks")
+}
+
+// ============================================================================
+// NOTES
+// ============================================================================
+
+// JSON Fields (stored as strings in SQLite):
+// - User.settings: { darkMode?: boolean, notifications?: boolean }
+// - Prompt.constraint: string[] (array of constraints)
+// - Session.scoringJson: Full scoring object from Claude
+// - Session.clientMetadata: { device?: string, browser?: string }
+// - Step.userInput: Varies by step (see PRD Section 4.3)
+// - Step.feedback: { text: string, tips?: string[] }
+
+// Indexes:
+// - User sessions by date (for progress screen)
+// - Auth tokens by user and token (for lookup)
+// - Sessions by status (for cleanup jobs)
+// - Prompts by difficulty (for selection)
+// - XP events by user and date (for leaderboards later)
+
+// Migration Path to PostgreSQL:
+// 1. Change provider to "postgresql"
+// 2. Update DATABASE_URL
+// 3. Change String (JSON) fields to Json type
+// 4. Run: prisma migrate dev
+// 5. All relationships and indexes remain the same

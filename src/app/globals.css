@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --background: 30 3% 12%;          /* #1E1E1E */
+    --foreground: 0 0% 95%;           /* #F2F2F2 */
+
+    --card: 0 0% 17%;                 /* #2C2C2C */
+    --card-foreground: 0 0% 95%;      /* #F2F2F2 */
+
+    --popover: 0 0% 17%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 26 100% 50%;           /* #FF6B00 */
+    --primary-soft: 27 100% 62%;      /* #FF9A3D */
+    --primary-foreground: 0 0% 95%;
+
+    --secondary: 0 0% 63%;            /* #A0A0A0 */
+    --secondary-foreground: 0 0% 95%;
+
+    --success: 75 68% 60%;            /* #B5E550 */
+    --success-foreground: 0 0% 12%;
+
+    --destructive: 4 100% 64%;        /* #FF4E42 */
+    --destructive-foreground: 0 0% 95%;
+
+    --muted: 0 0% 17%;
+    --muted-foreground: 0 0% 63%;     /* #A0A0A0 */
+
+    --accent: 26 100% 50%;
+    --accent-foreground: 0 0% 95%;
+
+    --border: 0 0% 25%;
+    --input: 0 0% 17%;
+    --ring: 26 100% 50%;
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Brand utilities */
+  .text-gradient-orange {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#FF6B00] via-[#FF9A3D] to-[#FF6B00];
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 24px rgba(255, 107, 0, 0.3);
+  }
+
+  .glow-orange-soft {
+    box-shadow: 0 0 16px rgba(255, 154, 61, 0.2);
+  }
+
+  .glow-success {
+    box-shadow: 0 0 20px rgba(181, 229, 80, 0.3);
+  }
+
+  /* Card styles */
+  .card-premium {
+    @apply bg-card rounded-2xl border border-white/5 shadow-xl;
+  }
+
+  .card-glass {
+    @apply bg-card/80 backdrop-blur-sm rounded-2xl border border-white/5;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply bg-[#FF6B00] hover:bg-[#FF9A3D] text-white font-semibold rounded-2xl px-6 py-3.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#FF6B00]/20 hover:shadow-[#FF6B00]/30;
+  }
+
+  .btn-secondary {
+    @apply bg-card hover:bg-card/80 text-foreground font-semibold rounded-2xl px-6 py-3.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] border border-white/10;
+  }
+
+  /* Input styles */
+  .input-premium {
+    @apply bg-card border-2 border-white/10 focus:border-[#FF6B00] focus:ring-2 focus:ring-[#FF6B00]/20 rounded-xl px-4 py-3 transition-all duration-200 outline-none placeholder:text-muted-foreground;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 bg-card rounded-full overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-[#FF6B00] to-[#FF9A3D] transition-all duration-500 ease-out;
+  }
+
+  /* Chip/Badge styles */
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  .chip-primary {
+    @apply chip bg-[#FF6B00]/10 text-[#FF9A3D] border border-[#FF6B00]/20;
+  }
+
+  .chip-success {
+    @apply chip bg-[#B5E550]/10 text-[#B5E550] border border-[#B5E550]/20;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-[#FF6B00]/20 hover:bg-[#FF6B00]/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-[#FF6B00]/40;
+}
+
+/* Selection */
+::selection {
+  @apply bg-[#FF6B00]/30 text-foreground;
+}
+
+/* Smooth animations */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 107, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(255, 107, 0, 0.5);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 107, 0, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
