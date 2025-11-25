@@ -14,13 +14,7 @@ export const Step1Schema = z.object({
   objective: z.enum(['ACQUISITION', 'ACTIVATION', 'RETENTION', 'MONETIZATION', 'ENGAGEMENT'], {
     errorMap: () => ({ message: 'Please select a valid objective category' }),
   }),
-  goalSentence: z
-    .string()
-    .min(20, 'Goal sentence must be at least 20 characters')
-    .max(500, 'Goal sentence must not exceed 500 characters')
-    .refine((val) => val.trim().length > 0, {
-      message: 'Goal sentence cannot be empty',
-    }),
+  goalSentence: z.string().optional().default(''),
 })
 
 export type Step1Data = z.infer<typeof Step1Schema>
@@ -35,11 +29,11 @@ export const Step2Schema = z.union([
   z.object({
     missionAlignment: z
       .string()
-      .min(50, 'Mission alignment must be at least 50 characters')
+      .min(0)
       .max(1000, 'Mission alignment must not exceed 1000 characters')
-      .refine((val) => val.trim().length > 0, {
-        message: 'Mission alignment cannot be empty',
-      }),
+      .optional()
+      .default(''),
+    picks: z.any().optional(),
   }),
   // Option 2: Detailed format with company mission and alignment
   z.object({
@@ -70,18 +64,14 @@ const UserSegmentSchema = z.object({
 
 export const Step3Schema = z.object({
   segments: z
-    .array(UserSegmentSchema)
-    .min(1, 'At least 1 user segment is required')
-    .max(3, 'Maximum 3 user segments allowed')
-    .refine(
-      (segments) => {
-        const names = segments.map((s) => s.name.toLowerCase())
-        return new Set(names).size === names.length
-      },
-      {
-        message: 'Segment names must be unique',
-      }
-    ),
+    .union([
+      z.array(UserSegmentSchema),
+      z.array(z.string().min(2)).min(1).max(3),
+    ])
+    .refine((segments) => {
+      const names = segments.map((s: any) => (typeof s === 'string' ? s.toLowerCase() : s.name.toLowerCase()))
+      return new Set(names).size === names.length
+    }, { message: 'Segment names must be unique' }),
 })
 
 export type Step3Data = z.infer<typeof Step3Schema>

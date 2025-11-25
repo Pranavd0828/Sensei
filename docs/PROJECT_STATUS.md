@@ -47,7 +47,8 @@ Sensei is a practice platform for Product Manager interviews that provides:
 
 **User APIs:**
 - `GET /api/user/me` - Get current user
-- `DELETE /api/user/account` - Delete account
+- `PATCH /api/account` - Update profile (display name)
+- `DELETE /api/account` - Delete account
 
 ### 3. Frontend Components
 - ✅ **Landing Page** - Hero, features, CTA

@@ -57,9 +57,10 @@ export async function logout() {
 // ============================================================================
 
 export async function getMe() {
-  // User data stored in localStorage for now
-  const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null
-  return user ? JSON.parse(user) : null
+  const response = await fetch(`${API_BASE}/api/user/me`, {
+    headers: getAuthHeaders(),
+  })
+  return handleResponse(response)
 }
 
 export async function deleteAccount() {
@@ -67,6 +68,15 @@ export async function deleteAccount() {
     method: 'DELETE',
     headers: getAuthHeaders(),
     body: JSON.stringify({ confirmation: 'DELETE' }),
+  })
+  return handleResponse(response)
+}
+
+export async function updateProfile(displayName: string) {
+  const response = await fetch(`${API_BASE}/api/account`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ displayName }),
   })
   return handleResponse(response)
 }

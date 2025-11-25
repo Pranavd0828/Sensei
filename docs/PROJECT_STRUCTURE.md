@@ -82,6 +82,7 @@ Next.js 14 file-based routing. Each folder with a `page.tsx` becomes a route.
 
 - **Pages**: User-facing routes
 - **API Routes**: Backend endpoints (`route.ts` files)
+  - Examples: `/api/auth/send-link`, `/api/sessions/start`, `/api/user/me`, `/api/account`
 
 #### Components (`src/components/`)
 Reusable React components organized by domain:

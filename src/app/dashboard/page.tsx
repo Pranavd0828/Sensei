@@ -21,30 +21,53 @@ interface ProgressionStats {
   averageScore: number | null
 }
 
+interface ActiveSession {
+  id: string
+  status: string
+  prompt: {
+    name: string
+    company: string
+    surface: string
+    difficulty: number
+  }
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<ProgressionStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [startError, setStartError] = useState('')
+  const [starting, setStarting] = useState(false)
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const token = localStorage.getItem('session_token')
-    const storedUser = localStorage.getItem('user')
-
-    if (!token || !storedUser) {
-      router.push('/')
+    if (!token) {
+      router.push('/login')
       return
     }
 
-    setUser(JSON.parse(storedUser))
-    fetchStats(token)
+    const bootstrap = async () => {
+      await Promise.all([
+        fetchUser(token),
+        fetchStats(token),
+        fetchActiveSession(token),
+      ])
+      setLoading(false)
+    }
+
+    bootstrap().catch((err) => {
+      console.error('Bootstrap error:', err)
+      router.push('/login')
+    })
   }, [router])
 
   const fetchStats = async (token: string) => {
     try {
       const response = await fetch('/api/progression/stats', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       })
 
@@ -54,29 +77,76 @@ export default function DashboardPage() {
       setStats(data.data)
     } catch (error) {
       console.error('Error fetching stats:', error)
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  const fetchUser = async (token: string) => {
+    try {
+      const response = await fetch('/api/user/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      const data = await response.json()
+      setUser(data.data)
+    } catch (err) {
+      console.error('Error fetching user:', err)
     }
   }
 
   const handleStartSession = async () => {
+    setStartError('')
+    setStarting(true)
     const token = localStorage.getItem('session_token')
-    if (!token) return
+    if (!token) {
+      setStartError('Session expired. Please log in again.')
+      setStarting(false)
+      return
+    }
 
     try {
       const response = await fetch('/api/sessions/start', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       })
 
       if (!response.ok) throw new Error('Failed to start session')
 
       const data = await response.json()
+      // clear any cached active session so UI re-fetches
+      setActiveSession(null)
       router.push(`/session/${data.data.session.id}`)
     } catch (error) {
       console.error('Error starting session:', error)
+      setStartError(error instanceof Error ? error.message : 'Unable to start session right now.')
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const fetchActiveSession = async (token: string) => {
+    try {
+      const res = await fetch('/api/sessions/active', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.data?.session) {
+        setActiveSession(data.data.session)
+      }
+    } catch (err) {
+      console.error('Error fetching active session:', err)
     }
   }
 
@@ -94,7 +164,9 @@ export default function DashboardPage() {
     )
   }
 
-  const xpProgress = stats ? ((stats.totalXp - (stats.totalXp - stats.xpToNextLevel)) / (stats.level * stats.level * 100)) * 100 : 0
+  const xpProgress = stats ? (stats.totalXp / (stats.totalXp + stats.xpToNextLevel)) * 100 : 0
+  const isReturning = (stats?.sessionsCompleted || 0) > 0
+  const hasActive = Boolean(activeSession)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -121,18 +193,68 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8 animate-slide-down">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-            Ready to Level Up? 🚀
+          <h1 className="text-4xl sm:text-5xl font-bold mb-2">
+            {isReturning ? 'Welcome back, ' + (user?.displayName || user?.email?.split('@')[0] || 'friend') : 'Ready to Level Up? 🚀'}
           </h1>
-          <p className="text-xl text-muted-foreground mb-6">
+          <p className="text-xl text-muted-foreground mb-4">
             Practice product sense and get AI-powered feedback
           </p>
-          <button
-            onClick={handleStartSession}
-            className="btn-primary text-lg px-8 py-4 animate-pulse-glow"
-          >
-            Start New Practice Session
-          </button>
+
+          {/* CTA row */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            {hasActive && (
+              <button
+                onClick={() => router.push(`/session/${activeSession?.id}`)}
+                className="btn-secondary px-6 py-3"
+              >
+                Continue Session
+              </button>
+            )}
+            <button
+              onClick={handleStartSession}
+              disabled={starting}
+              className="btn-primary text-lg px-8 py-4 animate-pulse-glow disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {starting ? 'Starting…' : isReturning ? 'Start New Session' : 'Start First Session'}
+            </button>
+            <button
+              onClick={() => router.push('/progress')}
+              className="px-5 py-3 rounded-xl border border-white/10 text-sm hover:border-white/30"
+            >
+              View Progress
+            </button>
+          </div>
+          {startError && <p className="text-sm text-destructive mt-3">{startError}</p>}
+
+          {/* Active session summary */}
+          {hasActive && (
+            <div className="mt-6 card-glass p-4 rounded-xl border border-white/10">
+              <div className="text-sm uppercase tracking-wide text-muted-foreground mb-1">Session in progress</div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <div className="font-semibold">{activeSession?.prompt.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {activeSession?.prompt.company} • {activeSession?.prompt.surface}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/session/${activeSession?.id}`)}
+                    className="btn-primary px-4 py-2"
+                  >
+                    Resume
+                  </button>
+                  <button
+                    onClick={handleStartSession}
+                    disabled={starting}
+                    className="px-4 py-2 rounded-xl border border-white/10 text-sm hover:border-white/30 disabled:opacity-60"
+                  >
+                    {starting ? 'Starting…' : 'Start Fresh'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -275,10 +397,12 @@ export default function DashboardPage() {
             </p>
             <button
               onClick={handleStartSession}
-              className="btn-primary text-lg px-8 py-4"
+              disabled={starting}
+              className="btn-primary text-lg px-8 py-4 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Begin First Session
+              {starting ? 'Starting…' : 'Begin First Session'}
             </button>
+            {startError && <p className="text-sm text-destructive mt-3">{startError}</p>}
           </div>
         )}
       </main>

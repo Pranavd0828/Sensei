@@ -41,6 +41,10 @@ export default function HomePage() {
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [startingSession, setStartingSession] = useState(false)
+  const [namePromptOpen, setNamePromptOpen] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameError, setNameError] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -58,6 +62,10 @@ export default function HomePage() {
 
     const userData = JSON.parse(storedUser)
     setUser(userData)
+    if (!userData.displayName) {
+      setNameInput((userData.email || '').split('@')[0])
+      setNamePromptOpen(true)
+    }
 
     await Promise.all([
       loadStats(),
@@ -110,6 +118,31 @@ export default function HomePage() {
     if (user?.displayName) return user.displayName
     if (user?.email) return user.email.split('@')[0]
     return 'there'
+  }
+
+  const handleSaveName = async () => {
+    setNameError('')
+    if (!nameInput.trim() || nameInput.trim().length < 2) {
+      setNameError('Please enter at least 2 characters')
+      return
+    }
+    setNameSaving(true)
+    try {
+      const updated: any = await api.updateProfile(nameInput.trim())
+      const storedUser = localStorage.getItem('user')
+      let merged = updated
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser)
+        merged = { ...parsed, ...updated }
+      }
+      localStorage.setItem('user', JSON.stringify(merged))
+      setUser(merged)
+      setNamePromptOpen(false)
+    } catch (error) {
+      setNameError(error instanceof Error ? error.message : 'Failed to save name')
+    } finally {
+      setNameSaving(false)
+    }
   }
 
   const xpProgress = stats
@@ -177,6 +210,13 @@ export default function HomePage() {
                       className="btn-primary flex-1 glow-orange-soft"
                     >
                       Continue session
+                    </button>
+                    <button
+                      onClick={handleStartSession}
+                      disabled={startingSession}
+                      className="btn-secondary flex-1"
+                    >
+                      {startingSession ? 'Starting...' : 'Start new session'}
                     </button>
                     <button
                       onClick={() => router.push('/progress')}
@@ -354,6 +394,45 @@ export default function HomePage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Name prompt modal */}
+      {namePromptOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="card-premium w-full max-w-lg p-6 border border-white/10 shadow-2xl">
+            <h3 className="text-2xl font-bold mb-2">Choose a display name</h3>
+            <p className="text-muted-foreground mb-4">
+              This is how we’ll greet you and show your progress.
+            </p>
+            <label className="text-sm font-medium mb-2 block">Display name</label>
+            <input
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              className="input-premium w-full"
+              maxLength={32}
+              autoFocus
+            />
+            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+              <span>{nameInput.length}/32</span>
+              {nameError && <span className="text-destructive text-sm">{nameError}</span>}
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setNamePromptOpen(false)}
+                className="px-4 py-2 rounded-xl border border-white/10 text-sm hover:border-white/30"
+              >
+                Skip
+              </button>
+              <button
+                onClick={handleSaveName}
+                disabled={nameSaving}
+                className="btn-primary px-6 disabled:opacity-60"
+              >
+                {nameSaving ? 'Saving...' : 'Save name'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }

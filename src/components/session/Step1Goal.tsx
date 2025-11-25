@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 
 interface Props {
@@ -20,34 +20,84 @@ const OBJECTIVES = [
   { value: 'ENGAGEMENT', label: 'Engagement', emoji: '❤️' },
 ]
 
+const MATCH_ITEMS = [
+  {
+    id: 'objective',
+    prompt: 'Which objective best fits this prompt?',
+    options: ['Engagement', 'Retention', 'Monetization'],
+    correct: 'Engagement',
+  },
+  {
+    id: 'metric',
+    prompt: 'Pick the best leading metric for this prompt',
+    options: ['% sessions using trending sounds before peak', 'Monthly revenue', 'Churn rate'],
+    correct: '% sessions using trending sounds before peak',
+  },
+  {
+    id: 'time',
+    prompt: 'What time sensitivity matters most here?',
+    options: ['Needs <48h freshness', 'Can wait weeks', 'Yearly cycle'],
+    correct: 'Needs <48h freshness',
+  },
+]
+
 export default function Step1Goal({ prompt, data, onComplete, saving }: Props) {
   const [objective, setObjective] = useState(data?.objective || '')
-  const [goalSentence, setGoalSentence] = useState(data?.goalSentence || '')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [matchAnswers, setMatchAnswers] = useState<Record<string, string>>(
+    MATCH_ITEMS.reduce((acc, item) => ({ ...acc, [item.id]: '' }), {})
+  )
+  const [hint, setHint] = useState<{ title: string; points: string[] } | null>(null)
 
-  const validate = () => {
+  const runValidation = () => {
     const newErrors: Record<string, string> = {}
 
     if (!objective) {
       newErrors.objective = 'Please select an objective'
     }
 
-    if (!goalSentence.trim()) {
-      newErrors.goalSentence = 'Please write a goal statement'
-    } else if (goalSentence.trim().length < 20) {
-      newErrors.goalSentence = 'Goal should be at least 20 characters'
-    } else if (goalSentence.length > 500) {
-      newErrors.goalSentence = 'Goal should not exceed 500 characters'
+    const unanswered = MATCH_ITEMS.filter((item) => !matchAnswers[item.id])
+    const incorrect = MATCH_ITEMS.filter(
+      (item) => matchAnswers[item.id] && matchAnswers[item.id] !== item.correct
+    )
+    if (unanswered.length > 0) {
+      newErrors.matches = 'Answer the quick matches before continuing'
+    } else if (incorrect.length > 0) {
+      newErrors.matches = 'Some answers need a quick fix'
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return {
+      ok: Object.keys(newErrors).length === 0,
+      issues: newErrors,
+      incorrect,
+    }
   }
 
   const handleSubmit = () => {
-    if (validate()) {
-      onComplete({ objective, goalSentence: goalSentence.trim() })
+    const { ok, incorrect } = runValidation()
+    if (!ok) {
+      if (incorrect && incorrect.length > 0) {
+        setHint({
+          title: 'Why these are correct',
+          points: incorrect.map((i) => {
+            if (i.id === 'objective') {
+              return 'This prompt is about using trending sounds before they peak — that’s an engagement outcome, not acquisition or monetization.'
+            }
+            if (i.id === 'metric') {
+              return 'A leading metric here is usage of trending sounds before peak; revenue or churn are lagging/secondary for this prompt.'
+            }
+            if (i.id === 'time') {
+              return 'The prompt is time-sensitive (48h freshness). Picking “Needs <48h freshness” aligns with the core constraint.'
+            }
+            return `For "${i.prompt}", choose: ${i.correct}`
+          }),
+        })
+      }
+      return
     }
+    setHint(null)
+    onComplete({ objective, goalSentence: '' })
   }
 
   return (
@@ -82,6 +132,42 @@ export default function Step1Goal({ prompt, data, onComplete, saving }: Props) {
         transition={{ duration: 0.4, delay: 0.2 }}
         className="card-premium p-8 space-y-6"
       >
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-semibold">Quick matches</h3>
+            <span className="text-xs text-muted-foreground">Check understanding before writing</span>
+          </div>
+          <div className="space-y-3">
+            {MATCH_ITEMS.map((item) => (
+              <div key={item.id} className="p-4 rounded-xl bg-card border border-white/5">
+                <p className="text-sm font-medium mb-2">{item.prompt}</p>
+                <div className="flex flex-wrap gap-2">
+                  {item.options.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() =>
+                        setMatchAnswers((prev) => ({
+                          ...prev,
+                          [item.id]: opt,
+                        }))
+                      }
+                      className={`px-3 py-2 rounded-lg border text-sm transition ${
+                        matchAnswers[item.id] === opt
+                          ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-foreground'
+                          : 'border-white/10 hover:border-white/30 text-muted-foreground'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {errors.matches && <p className="text-destructive text-sm mt-2">{errors.matches}</p>}
+        </div>
+
         {/* Objective selector */}
         <div>
           <label className="block text-sm font-medium mb-3">
@@ -108,28 +194,6 @@ export default function Step1Goal({ prompt, data, onComplete, saving }: Props) {
           )}
         </div>
 
-        {/* Goal statement */}
-        <div>
-          <label htmlFor="goal" className="block text-sm font-medium mb-2">
-            Write your goal statement
-          </label>
-          <textarea
-            id="goal"
-            value={goalSentence}
-            onChange={(e) => setGoalSentence(e.target.value)}
-            placeholder="Example: Increase 7-day retention for new creators by 25% through improved onboarding..."
-            className="input-premium w-full min-h-[120px] resize-none"
-            rows={4}
-          />
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-muted-foreground">
-              {goalSentence.length}/500 characters
-            </span>
-            {errors.goalSentence && (
-              <p className="text-destructive text-sm">{errors.goalSentence}</p>
-            )}
-          </div>
-        </div>
       </motion.div>
 
       {/* Navigation */}
@@ -173,6 +237,30 @@ export default function Step1Goal({ prompt, data, onComplete, saving }: Props) {
           )}
         </button>
       </motion.div>
+
+      {hint && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center px-4">
+          <div className="card-premium w-full max-w-lg p-6 border border-amber-500/30">
+            <h3 className="text-xl font-semibold mb-3">{hint.title}</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {hint.points.map((p, idx) => (
+                <li key={idx} className="flex gap-2">
+                  <span className="text-foreground">•</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setHint(null)}
+                className="btn-primary px-5"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

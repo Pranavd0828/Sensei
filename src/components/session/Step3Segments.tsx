@@ -45,11 +45,15 @@ export default function Step3Segments({ data, onComplete, onBack, saving }: Prop
     })
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return {
+      ok: Object.keys(newErrors).length === 0,
+      filledSegments,
+    }
   }
 
   const handleSubmit = () => {
-    if (validate()) {
+    const { ok } = validate()
+    if (ok) {
       const cleanedSegments = segments
         .filter(s => s.name.trim() && s.description.trim())
         .map(s => ({

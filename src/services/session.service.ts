@@ -41,22 +41,33 @@ export class SessionService {
     // Get user to determine difficulty range
     const user = await db.user.findUnique({
       where: { id: userId },
+      include: {
+        sessions: {
+          where: { status: 'in_progress' },
+          include: {
+            prompt: true,
+            steps: {
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+          orderBy: { startedAt: 'desc' },
+          take: 1,
+        },
+      },
     })
 
     if (!user) {
       throw new Error('User not found')
     }
 
-    // Check if user has an active session
-    const activeSession = await db.session.findFirst({
-      where: {
-        userId,
-        status: 'in_progress',
-      },
-    })
-
-    if (activeSession) {
-      throw new Error('You already have an active session. Complete it before starting a new one.')
+    // Check if user has an active session and return it instead of failing
+    const existing = user.sessions?.[0]
+    if (existing) {
+      const nextStep = existing.steps.length >= 8 ? 8 : existing.steps.length + 1
+      return {
+        session: existing as SessionWithDetails,
+        currentStepNumber: existing.steps.length > 0 ? nextStep : 1,
+      }
     }
 
     // Determine difficulty range based on user level

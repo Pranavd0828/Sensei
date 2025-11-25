@@ -1,7 +1,7 @@
 /**
- * DELETE /api/account
- *
- * Delete user account and all associated data
+ * Account routes
+ * - DELETE /api/account : Delete user account and all associated data
+ * - PATCH /api/account  : Update profile fields (display name)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -17,6 +17,14 @@ const DeleteAccountSchema = z.object({
   confirmation: z.literal('DELETE', {
     errorMap: () => ({ message: 'Must type DELETE to confirm' }),
   }),
+})
+
+const UpdateProfileSchema = z.object({
+  displayName: z
+    .string()
+    .min(2, 'Display name must be at least 2 characters')
+    .max(32, 'Display name must be 32 characters or fewer')
+    .trim(),
 })
 
 // ============================================================================
@@ -79,5 +87,65 @@ export async function DELETE(request: NextRequest) {
       },
       { status: 500 }
     )
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const userId = await validateAuth(request)
+    const body = await request.json()
+    const { displayName } = UpdateProfileSchema.parse(body)
+
+    const updated = await AuthService.updateProfile(userId, {
+      displayName,
+    })
+
+    return NextResponse.json({
+      data: {
+        id: updated.id,
+        email: updated.email,
+        displayName: updated.displayName,
+        level: updated.level,
+        totalXp: updated.totalXp,
+      },
+    })
+  } catch (error) {
+    console.error('Update profile error:', error)
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid input',
+            details: error.errors,
+          },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Invalid or expired session',
+          },
+        },
+        { status: 401 }
+      )
+    }
+
+    const message = error instanceof Error ? error.message : 'Failed to update profile'
+    return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_ERROR',
+            message,
+          },
+        },
+        { status: 500 }
+      )
   }
 }

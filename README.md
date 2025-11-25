@@ -227,10 +227,14 @@ See [public/openapi.json](public/openapi.json) for complete OpenAPI 3.0 specific
 - `GET /api/sessions/:id` - Get session detail
 
 ### Progress
-- `GET /api/progress` - User stats and progress
+- `GET /api/progression/stats` - User stats and progress
+- `GET /api/progression/xp-history` - XP history
 
-### Account
+### User & Account
+- `GET /api/user/me` - Current user profile
+- `PATCH /api/account` - Update profile (display name)
 - `DELETE /api/account` - Delete account and all data
+
 
 ## 🔐 Environment Variables
 
