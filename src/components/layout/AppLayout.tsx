@@ -39,9 +39,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const loadUserData = async () => {
     const userData = await api.getMe()
     if (userData) {
-      setUser(userData)
+      setUser(userData as any) // Cast to any as per instruction
       const statsData = await api.getProgressionStats()
-      setStats(statsData)
+      setStats(statsData as any) // Cast to any as per instruction
     }
   }
 

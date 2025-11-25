@@ -21,7 +21,7 @@ export default function Step8Summary({ steps, data, onComplete, onBack, saving }
   const validate = () => {
     const newErrors: Record<string, string> = {}
     if (reflection.trim().length < 100) newErrors.reflection = 'Reflection too short (min 100 chars)'
-    const validLearnings = learnings.filter(l => l.trim().length >= 20)
+    const validLearnings = learnings.filter((l: string) => l.trim().length >= 20)
     if (validLearnings.length < 1) newErrors.learnings = 'Add at least 1 learning (min 20 chars)'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -33,7 +33,7 @@ export default function Step8Summary({ steps, data, onComplete, onBack, saving }
       onComplete({
         summary,
         reflection: reflection.trim(),
-        learnings: learnings.filter(l => l.trim().length >= 20).map(l => l.trim())
+        learnings: learnings.filter((l: string) => l.trim().length >= 20).map((l: string) => l.trim())
       })
     }
   }
@@ -80,7 +80,7 @@ export default function Step8Summary({ steps, data, onComplete, onBack, saving }
 
         <div>
           <label className="block text-sm font-medium mb-2">Key Learnings</label>
-          {learnings.map((learning, idx) => (
+          {learnings.map((learning: string, idx: number) => (
             <textarea key={idx} value={learning} onChange={(e) => updateLearning(idx, e.target.value)} placeholder={`Learning ${idx + 1}`} className="input-premium w-full mb-2 min-h-[60px]" rows={2} />
           ))}
           {learnings.length < 3 && <button onClick={addLearning} className="text-sm text-[#FF9A3D]">+ Add learning</button>}

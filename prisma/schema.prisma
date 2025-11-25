@@ -36,6 +36,7 @@ model User {
   sessions     Session[]
   xpEvents     XpEvent[]
   streak       Streak?
+  userAchievements UserAchievement[]
   authTokens   AuthToken[]
 
   @@map("users")
@@ -206,6 +207,35 @@ model Streak {
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("streaks")
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g., "FIRST_SESSION"
+  name        String
+  description String
+  icon        String   // Lucide icon name
+  xpReward    Int      @map("xp_reward")
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
 }
 
 // ============================================================================

@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Textarea } from '@/components/ui/textarea'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { Label } from '@/components/ui/label' // Assuming Label is also from a UI library
 import { motion } from 'framer-motion'
 
 interface Props {
@@ -152,11 +155,10 @@ export default function Step1Goal({ prompt, data, onComplete, saving }: Props) {
                           [item.id]: opt,
                         }))
                       }
-                      className={`px-3 py-2 rounded-lg border text-sm transition ${
-                        matchAnswers[item.id] === opt
+                      className={`px-3 py-2 rounded-lg border text-sm transition ${matchAnswers[item.id] === opt
                           ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-foreground'
                           : 'border-white/10 hover:border-white/30 text-muted-foreground'
-                      }`}
+                        }`}
                     >
                       {opt}
                     </button>
@@ -170,19 +172,21 @@ export default function Step1Goal({ prompt, data, onComplete, saving }: Props) {
 
         {/* Objective selector */}
         <div>
-          <label className="block text-sm font-medium mb-3">
-            Select objective category
-          </label>
+          <div className="flex items-center gap-2 mb-2">
+            <Label htmlFor="goal" className="text-lg font-medium">
+              What is the goal?
+            </Label>
+            <InfoTooltip content="Define a clear, measurable objective. Example: 'Increase user retention by 10% in Q3'" />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {OBJECTIVES.map((obj) => (
               <button
                 key={obj.value}
                 onClick={() => setObjective(obj.value)}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  objective === obj.value
+                className={`p-4 rounded-xl border-2 transition-all ${objective === obj.value
                     ? 'border-[#FF6B00] bg-[#FF6B00]/10'
                     : 'border-white/10 hover:border-white/20'
-                }`}
+                  }`}
               >
                 <div className="text-2xl mb-1">{obj.emoji}</div>
                 <div className="text-sm font-semibold">{obj.label}</div>

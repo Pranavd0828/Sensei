@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { InfoTooltip } from '@/components/ui/InfoTooltip' // Added import
+import { Label } from '@/components/ui/label' // Added import
 
 interface Props {
   sessionId: string
@@ -12,9 +14,14 @@ interface Props {
   saving: boolean
 }
 
+interface Guardrail {
+  name: string
+  threshold: string
+}
+
 export default function Step6Metrics({ data, onComplete, onBack, saving }: Props) {
   const [primaryMetric, setPrimaryMetric] = useState(data?.primaryMetric || { name: '', description: '', target: '' })
-  const [guardrails, setGuardrails] = useState(data?.guardrails || [{ name: '', threshold: '' }])
+  const [guardrails, setGuardrails] = useState<Guardrail[]>(data?.guardrails || [{ name: '', threshold: '' }])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const validate = () => {
@@ -51,17 +58,23 @@ export default function Step6Metrics({ data, onComplete, onBack, saving }: Props
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h2 className="text-3xl font-bold mb-2">Define Success Metrics</h2>
+        {/* Replaced h2 with Label and InfoTooltip as per instruction */}
+        <div className="flex items-center gap-2 mb-2">
+          <Label htmlFor="northStar" className="text-3xl font-bold">
+            North Star Metric
+          </Label>
+          <InfoTooltip content="The single metric that best captures the core value your product delivers to its customers." />
+        </div>
         <p className="text-muted-foreground">How will you measure success?</p>
       </motion.div>
 
       <div className="card-premium p-6 space-y-4">
         <h3 className="font-semibold">Primary Metric</h3>
-        <input type="text" value={primaryMetric.name} onChange={(e) => setPrimaryMetric({...primaryMetric, name: e.target.value})} placeholder="Metric name (e.g., 7-Day Retention Rate)" className="input-premium w-full" />
+        <input type="text" value={primaryMetric.name} onChange={(e) => setPrimaryMetric({ ...primaryMetric, name: e.target.value })} placeholder="Metric name (e.g., 7-Day Retention Rate)" className="input-premium w-full" />
         {errors.primaryName && <p className="text-destructive text-sm">{errors.primaryName}</p>}
-        <textarea value={primaryMetric.description} onChange={(e) => setPrimaryMetric({...primaryMetric, description: e.target.value})} placeholder="Describe how you'll measure it..." className="input-premium w-full min-h-[80px]" rows={3} />
+        <textarea value={primaryMetric.description} onChange={(e) => setPrimaryMetric({ ...primaryMetric, description: e.target.value })} placeholder="Describe how you'll measure it..." className="input-premium w-full min-h-[80px]" rows={3} />
         {errors.primaryDesc && <p className="text-destructive text-sm">{errors.primaryDesc}</p>}
-        <input type="text" value={primaryMetric.target} onChange={(e) => setPrimaryMetric({...primaryMetric, target: e.target.value})} placeholder="Target (e.g., Increase from 40% to 50% in 3 months)" className="input-premium w-full" />
+        <input type="text" value={primaryMetric.target} onChange={(e) => setPrimaryMetric({ ...primaryMetric, target: e.target.value })} placeholder="Target (e.g., Increase from 40% to 50% in 3 months)" className="input-premium w-full" />
         {errors.primaryTarget && <p className="text-destructive text-sm">{errors.primaryTarget}</p>}
       </div>
 

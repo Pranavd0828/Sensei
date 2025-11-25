@@ -6,6 +6,7 @@
 
 import { db } from '@/lib/db'
 import { xpForLevel } from '@/lib/utils'
+import { AchievementsService } from './achievements.service'
 
 // ============================================================================
 // Types
@@ -344,6 +345,13 @@ export class ProgressionService {
 
     // Update streak
     const streakResult = await this.updateStreak(userId)
+
+    // Check for achievements
+    await AchievementsService.checkAchievements(userId, 'SESSION_COMPLETED')
+    await AchievementsService.checkAchievements(userId, 'XP_AWARDED')
+    if (streakResult.streakUpdated) {
+      await AchievementsService.checkAchievements(userId, 'STREAK_UPDATED')
+    }
 
     return {
       xpResult,

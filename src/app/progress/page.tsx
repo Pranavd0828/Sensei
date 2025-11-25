@@ -39,19 +39,19 @@ export default function ProgressPage() {
       ])
 
       setStats(statsData)
-      setSessions(sessionsData.sessions || [])
+      setSessions((sessionsData as any).sessions || [])
 
       // Calculate step averages
       const stepScores: Record<string, number[]> = {}
-      sessionsData.sessions?.forEach((session: any) => {
-        if (session.scoringJson) {
-          const scoring = JSON.parse(session.scoringJson)
-          scoring.stepScores?.forEach((step: any) => {
-            if (!stepScores[step.stepName]) stepScores[step.stepName] = []
-            stepScores[step.stepName].push(step.score)
-          })
-        }
-      })
+        ; (sessionsData as any).sessions?.forEach((session: any) => {
+          if (session.scoringJson) {
+            const scoring = JSON.parse(session.scoringJson)
+            scoring.stepScores?.forEach((step: any) => {
+              if (!stepScores[step.stepName]) stepScores[step.stepName] = []
+              stepScores[step.stepName].push(step.score)
+            })
+          }
+        })
 
       const averages: StepAverage[] = Object.entries(stepScores).map(([name, scores]) => ({
         stepName: name,
