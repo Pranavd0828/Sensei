@@ -23,7 +23,7 @@ Sensei is a practice platform for Product Manager interviews that provides:
 - ✅ **Database** - SQLite with Prisma ORM
 - ✅ **Session Management** - Complete CRUD operations
 - ✅ **Scoring System** - AI scoring with mock fallback
-- ✅ **Progression System** - XP, levels, and streaks
+- ✅ **Progression System** - XP, levels, streaks, and achievements
 - ✅ **33 Seeded Prompts** - Real interview questions from FAANG companies
 
 ### 2. API Endpoints
@@ -59,7 +59,7 @@ Sensei is a practice platform for Product Manager interviews that provides:
   2. Align to Mission
   3. Identify User Segments
   4. Prioritize Problems
-  5. Ideate Solutions
+  5. Ideate Solutions (Interactive Kanban)
   6. Define Metrics
   7. Tradeoffs and Risks
   8. Summary and Reflection

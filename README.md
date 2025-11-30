@@ -9,8 +9,9 @@ Make structured, product-style thinking a daily habit.
 ## ✨ Features
 
 - **8-Step Practice Flow**: Guided exercises covering goal setting, user segments, problem prioritization, solution ideation, metrics, tradeoffs, and reflection
+- **Interactive Kanban Board**: Drag-and-drop feature prioritization (Step 5)
 - **AI-Powered Feedback**: LLM-based scoring with detailed feedback on each step
-- **Gamification**: XP system, leveling, and daily streak tracking
+- **Gamification**: XP system, leveling, achievements, and daily streak tracking
 - **Progress Tracking**: View past sessions and identify weak areas
 - **Magic Link Authentication**: Passwordless login for better UX
 

@@ -111,6 +111,7 @@ Request → Auth Middleware → Validate Input → Call Service → Format Respo
 - `PromptService` - Prompt selection logic
 - `ScoringService` - LLM scoring and validation
 - `XPService` - XP calculation and leveling
+- `AchievementsService` - Achievement tracking and unlocking
 - `StreakService` - Streak tracking
 - `AccountService` - Account deletion
 
@@ -135,6 +136,7 @@ Request → Auth Middleware → Validate Input → Call Service → Format Respo
 users → sessions → steps
 users → xp_events
 users → streaks
+users → achievements (via user_achievements)
 prompts
 missions
 auth_tokens

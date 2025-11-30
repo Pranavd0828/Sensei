@@ -19,14 +19,14 @@ Sensei helps PM candidates and product builders practice structured thinking thr
   2. Align to mission/company strategy
   3. Identify target segments
   4. Prioritize core problems
-  5. Ideate solutions
+  5. Ideate solutions (Interactive Kanban Board)
   6. Define success metrics
   7. Analyze tradeoffs/risks
   8. Summarize recommendation
 - **Autosave:** Step inputs persisted locally and to backend per-step where possible
 - **Submission:** User submits completed session for scoring
 - **Feedback:** AI (Anthropic) scores each step with strengths + improvements; mock fallback available
-- **Gamification:** XP, levels, streak tracking; optional leaderboard stub
+- **Gamification:** XP, levels, achievements, streak tracking; optional leaderboard stub
 - **Progress:** History of sessions, scores, XP earned, streak status
 - **Settings:** Manage account, delete data, toggle mock vs live scoring, manage email
 
