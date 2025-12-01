@@ -66,6 +66,28 @@ export class AchievementsService {
                         if (user && user.totalXp >= 1000) unlocked = true
                     }
                     break
+
+                case 'PERFECTIONIST':
+                    if (event === 'SESSION_SCORED' && metadata?.score) {
+                        if (metadata.score >= 90) unlocked = true
+                    }
+                    break
+
+                case 'NIGHT_OWL':
+                    if (event === 'SESSION_COMPLETED') {
+                        const hour = new Date().getHours()
+                        // 10 PM (22) to 4 AM (4)
+                        if (hour >= 22 || hour < 4) unlocked = true
+                    }
+                    break
+
+                case 'EARLY_BIRD':
+                    if (event === 'SESSION_COMPLETED') {
+                        const hour = new Date().getHours()
+                        // 5 AM (5) to 9 AM (9)
+                        if (hour >= 5 && hour < 9) unlocked = true
+                    }
+                    break
             }
 
             if (unlocked) {
@@ -143,6 +165,27 @@ export class AchievementsService {
                 description: 'Earn 1000 total XP',
                 icon: 'Star',
                 xpReward: 500
+            },
+            {
+                code: 'PERFECTIONIST',
+                name: 'Perfectionist',
+                description: 'Score 90 or higher on a session',
+                icon: 'Trophy',
+                xpReward: 500
+            },
+            {
+                code: 'NIGHT_OWL',
+                name: 'Night Owl',
+                description: 'Complete a session late at night (10 PM - 4 AM)',
+                icon: 'Moon',
+                xpReward: 200
+            },
+            {
+                code: 'EARLY_BIRD',
+                name: 'Early Bird',
+                description: 'Complete a session early in the morning (5 AM - 9 AM)',
+                icon: 'Sun',
+                xpReward: 200
             }
         ]
 
